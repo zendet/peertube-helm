@@ -1,0 +1,36 @@
+{{- if .Values.server.grafana.dashboards.metrics.createConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "peertube.grafana.metrics.configMapName" . }}
+  namespace: {{ default (include "peertube.namespace" .) .Values.server.grafana.namespace }}
+  {{- with .Values.server.grafana.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    grafana_dashboard: "1"
+    {{- with .Values.server.grafana.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  peertube-server-metrics.json: |-
+{{ .Files.Get "dashboards/peertube-server-metrics.json" | indent 4 }}
+{{- if .Values.server.grafana.grafanaDashboard.enabled }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: {{ include "peertube.grafana.metrics.configMapName" . }}
+  namespace: {{ default (include "peertube.namespace" .) .Values.server.grafana.namespace }}
+spec:
+  allowCrossNamespaceImport: {{ .Values.server.grafana.grafanaDashboard.allowCrossNamespaceImport }}
+  folder: {{ .Values.server.grafana.grafanaDashboard.folder | quote }}
+  instanceSelector:
+    matchLabels:
+      {{- toYaml .Values.server.grafana.grafanaDashboard.matchLabels | nindent 6 }}
+  configMapRef:
+    name: {{ tpl .Values.server.grafana.dashboards.metrics.configMapName . }}
+    key: peertube-server-metrics.json
+{{- end }}
+{{- end }}

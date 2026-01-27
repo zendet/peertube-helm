@@ -1,0 +1,51 @@
+{{- if .Values.server.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "peertube.server.name" . }}
+  {{- if .Values.server.serviceMonitor.namespace }}
+  namespace: {{ .Values.server.serviceMonitor.namespace }}
+  {{- else }}
+  namespace: {{ template "peertube.namespace" . }}
+  {{- end }}
+  {{- with .Values.server.serviceMonitor.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+    {{- with .Values.server.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "peertube.server.matchLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ template "peertube.namespace" . }}
+  endpoints:
+  - port: metrics
+    {{- with .Values.server.serviceMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+    {{- with .Values.server.serviceMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+    path: /metrics
+    {{- with .Values.server.serviceMonitor.scheme }}
+    scheme: {{ . }}
+    {{- end }}
+    {{- with .Values.server.serviceMonitor.tlsConfig }}
+    tlsConfig:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.server.serviceMonitor.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.server.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end -}}

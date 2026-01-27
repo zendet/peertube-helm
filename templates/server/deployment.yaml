@@ -1,0 +1,204 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "peertube.server.name" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.server.autoscaling.enabled }}
+  replicas: {{ template "peertube.deployment.replicas" .Values.server.replicas }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.server.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "peertube.server.matchLabels" . | nindent 6 }}
+  {{- with .Values.server.updateStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}  
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "peertube.server.labels" . | nindent 8 }}
+        {{- with .Values.server.podLabels }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include "peertube/templates/server/configmap.yaml" $ | sha256sum }}
+        checksum/secret: {{ include "peertube/templates/server/secret.yaml" $ | sha256sum }}
+        {{- with .Values.server.podAnnotations }}
+        {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "peertube.server.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.server.podSecurityContext }}
+      securityContext:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.server.dnsConfig }}
+      dnsConfig:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.nodeSelector | default .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.server.imagePullSecrets | default .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- tpl (include "peertube.sortedImagePullSecrets" .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.hostNetwork }}
+      hostNetwork: {{ . }}
+      {{- end }}
+      {{- with .Values.server.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations | default .Values.global.tolerations }}
+      tolerations:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.server.antiAffinity.enabled .Values.server.podAffinity .Values.server.nodeAffinity }}
+      affinity:
+        {{- if .Values.server.antiAffinity.enabled }}
+        {{- with .Values.server.podAntiAffinity }}
+        podAntiAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.server.podAffinity }}
+        podAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+        {{- with .Values.server.nodeAffinity }}
+        nodeAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        {{- with .Values.server.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: server
+          command:
+            - bash
+            - -c
+            - |
+              mkdir -p /data/config
+              node dist/server
+          {{- with $.Values.server.container.extraArgs }}
+          args:
+            {{- range $key, $value := . }}
+            {{- if $value }}
+            - --{{ $key }}={{ $value }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          image: {{ include "peertube.image" (dict
+            "image" .Values.server.container.image
+            "globalRegistry" .Values.global.image.registry
+            "defaultTag" .Chart.AppVersion
+          ) | quote }}
+          {{- with .Values.server.container.resources }}
+          resources:
+            {{- tpl (toYaml .) $ | nindent 12}}
+          {{- end }}
+          {{- with .Values.server.container.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /config/production.yaml
+              subPath: production.yaml
+              readOnly: true
+            - name: data
+              mountPath: /data
+          ports:
+            - name: server
+              containerPort: {{ .Values.server.containerPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.server.metricsPort }}
+              protocol: TCP
+          env:
+          - name: NODE_ENV
+            value: production
+          - name: NODE_CONFIG_DIR
+            value: "/app/config:/app/support/docker/production/config:/config:/data/config"
+          - name: PEERTUBE_LOCAL_CONFIG
+            value: /data/config
+          - name: PT_INITIAL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                {{- include "peertube.server.admin.passwordSecretRef" . | nindent 16 }}
+          - name: PEERTUBE_DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                {{- include "peertube.server.postgres.usernameSecretRef" . | nindent 16 }}
+          - name: PEERTUBE_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                {{- include "peertube.server.postgres.passwordSecretRef" . | nindent 16 }}
+          - name: PEERTUBE_REDIS_AUTH
+            valueFrom:
+              secretKeyRef:
+                {{- include "peertube.server.redis.passwordSecretRef" . | nindent 16 }}
+          - name: PEERTUBE_SECRET
+            valueFrom:
+              secretKeyRef:
+                {{- include "peertube.server.peertubeSecretRef" . | nindent 16 }}
+          {{- if .Values.server.objectStorage.enabled }}
+          - name: PEERTUBE_OBJECT_STORAGE_CREDENTIALS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.server.objectStorage.existingSecret | quote }}
+                key: "access-key-id"
+          - name: PEERTUBE_OBJECT_STORAGE_CREDENTIALS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.server.objectStorage.existingSecret | quote }}
+                key: "secret-access-key"
+          {{- end }}
+          {{- with (concat .Values.global.extraEnvVars .Values.server.container.extraEnvVars) }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.server.startupProbe }}
+          startupProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with .Values.server.livenessProbe }}
+          livenessProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with .Values.server.readinessProbe }}
+          readinessProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with .Values.server.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "peertube.server.configMapName" . }}
+        - name: data
+          {{- if .Values.server.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-storage" (include "peertube.server.name" .)) .Values.server.persistence.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

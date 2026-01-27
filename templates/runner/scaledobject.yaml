@@ -1,0 +1,53 @@
+{{- if .Values.runner.enabled }}
+
+{{- $globalKeda := .Values.runner.kedaDefaults | default dict -}}
+{{- $pg := $globalKeda.postgresql | default dict -}}
+{{- range $g := .Values.runner.runnerGroups }}
+{{- $groupKeda := $g.keda | default dict -}}
+{{- $keda := merge (deepCopy $globalKeda) $groupKeda -}}
+
+{{- if $keda.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ template "peertube.runner.name" $ }}-{{ $g.id }}-keda
+  namespace: {{ template "peertube.namespace" $ }}
+  labels:
+    {{- include "peertube.runner.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ template "peertube.runner.name" $ }}-{{ $g.id }}
+  minReplicaCount: {{ $keda.minReplicas }}
+  maxReplicaCount: {{ $keda.maxReplicas }}
+  cooldownPeriod: {{ $keda.cooldownPeriod }}
+  pollingInterval: {{ $keda.pollingInterval }}
+  triggers:
+    {{- if and $pg.existingSecret $pg.host }}
+    - type: postgresql
+      authenticationRef:
+        name: {{ template "peertube.runner.name" $ }}-keda-pg-auth
+      metadata:
+        host: {{ $pg.host | quote }}
+        port: {{ $pg.port | default "5432" | quote }}
+        userName: {{ $pg.userName | default "peertube" | quote }}
+        dbName: {{ $pg.dbName | default "peertube" | quote }}
+        sslmode: {{ $pg.sslmode | default "disable" | quote }}
+        query: {{ if $pg.query }}{{ $pg.query | quote }}{{ else }}"SELECT COALESCE(COUNT(*),0)::integer FROM \"runnerJob\" WHERE state IN (1, 5){{ if $g.jobTypes }} AND \"type\" IN ('{{ join "','" $g.jobTypes }}'){{ end }}"{{ end }}
+        targetQueryValue: {{ $pg.targetQueryValue | default "1" | quote }}
+    {{- end }}
+    {{- if $keda.cpu.enabled }}
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: {{ $keda.cpu.targetCPUUtilizationPercentage | quote }}
+    {{- end }}
+  {{- with $keda.advanced }}
+  advanced:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

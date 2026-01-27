@@ -1,0 +1,20 @@
+{{- if .Values.runner.enabled -}}
+{{- range $g := .Values.runner.runnerGroups }}
+{{- if $g.config.createConfigMap -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "peertube.runner.configMapName" (dict "root" $ "group" $g) }}
+  namespace: {{ template "peertube.namespace" $ }}
+  labels:
+    {{- include "peertube.runner.labels" $ | nindent 4}}
+  {{- with $g.config.configMapAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- include "peertube.runner.configData" (dict "root" $ "group" $g) | nindent 2 }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

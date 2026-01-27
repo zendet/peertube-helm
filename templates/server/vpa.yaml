@@ -1,0 +1,22 @@
+{{- if .Values.server.vpa.enabled -}}
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ template "peertube.server.name" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+  {{- include "peertube.server.labels" . | nindent 4 }}
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: {{ template "peertube.server.name" . }}
+  updatePolicy:
+    updateMode: {{ .Values.server.vpa.updateMode }}
+  resourcePolicy:
+    containerPolicies:
+    - containerName: {{ template "peertube.server.name" . }}
+    {{ with .Values.server.vpa.containerPolicy }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}

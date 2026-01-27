@@ -1,0 +1,15 @@
+{{- $pg := .Values.runner.kedaDefaults.postgresql | default dict -}}
+{{- if and .Values.runner.enabled $pg.existingSecret $pg.host }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ template "peertube.runner.name" . }}-keda-pg-auth
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.runner.labels" . | nindent 4 }}
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: {{ $pg.existingSecret | quote }}
+      key: {{ $pg.passwordKey | default "postgres-password" | quote }}
+{{- end }}

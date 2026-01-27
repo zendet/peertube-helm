@@ -1,0 +1,16 @@
+{{- if .Values.runner.enabled -}}
+{{- if .Values.runner.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "peertube.runner.name" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.runner.labels" . | nindent 4 }}
+spec:
+  {{- include "peertube.pdb.spec" .Values.runner.podDisruptionBudget | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "peertube.pdb.matchLabels" . | nindent 6 }}
+{{- end -}}
+{{- end }}

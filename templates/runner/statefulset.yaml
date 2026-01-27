@@ -1,0 +1,219 @@
+{{- if .Values.runner.enabled }}
+{{- range $g := .Values.runner.runnerGroups }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "peertube.runner.name" $ }}-{{ $g.id }}
+  namespace: {{ template "peertube.namespace" $ }}
+  labels:
+    {{- include "peertube.runner.labels" $ | nindent 4 }}
+    peertube.runner/group: {{ $g.id }}
+  {{- with $.Values.runner.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ template "peertube.runner.name" $ }}-headless
+  replicas: {{ default 1 $g.replicas }}
+  selector:
+    matchLabels:
+      {{- include "peertube.runner.matchLabels" $ | nindent 6 }}
+      peertube.runner/group: {{ $g.id }}
+  template:
+    metadata:
+      labels:
+        {{- include "peertube.runner.labels" $ | nindent 8 }}
+        peertube.runner/group: {{ $g.id }}
+        {{- with $.Values.runner.podLabels }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include "peertube.runner.configData" (dict "root" $ "group" $g) | sha256sum }}
+        {{- with $.Values.runner.podAnnotations }}
+        {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.runner.podSecurityContext }}
+      securityContext:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "peertube.runner.serviceAccountName" $ }}
+      automountServiceAccountToken: false
+      {{- with $.Values.runner.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with $.Values.runner.dnsConfig }}
+      dnsConfig:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.runner.nodeSelector | default $.Values.global.nodeSelector }}
+      nodeSelector:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.runner.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with $.Values.runner.imagePullSecrets | default $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- tpl (include "peertube.sortedImagePullSecrets" .) $ | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.runner.hostNetwork }}
+      hostNetwork: {{ . }}
+      {{- end }}
+      {{- with $.Values.runner.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.runner.tolerations | default $.Values.global.tolerations }}
+      tolerations:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- if or $.Values.runner.antiAffinity.enabled $.Values.runner.podAffinity $.Values.runner.nodeAffinity }}
+      affinity:
+        {{- if $.Values.runner.antiAffinity.enabled }}
+        {{- with $.Values.runner.podAntiAffinity }}
+        podAntiAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+        {{- end }}
+        {{- with $.Values.runner.podAffinity }}
+        podAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+        {{- with $.Values.runner.nodeAffinity }}
+        nodeAffinity:
+          {{- tpl (toYaml .) $ | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      initContainers:
+        - name: register
+          image: {{ include "peertube.image" (dict
+            "image" $.Values.runner.initContainer.image
+            "globalRegistry" $.Values.global.image.registry
+            "defaultTag" $.Chart.AppVersion
+          ) | quote }}
+          {{- with $.Values.runner.initContainer.resources }}
+          resources:
+            {{- tpl (toYaml .) $ | nindent 12}}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.runner.initContainer.image.pullPolicy }}
+          args: ["bootstrap"]
+          env:
+          - name: HOME
+            value: /home/peertube
+          - name: XDG_CONFIG_HOME
+            value: /home/peertube/.config
+          - name: XDG_CACHE_HOME
+            value: /home/peertube/.cache
+          - name: XDG_DATA_HOME
+            value: /home/peertube/.local/share
+          - name: POD_NAME
+            valueFrom: 
+              fieldRef:
+                fieldPath: metadata.name
+          - name: RUNNER_GROUP_ID
+            value: {{ $g.id | quote }}
+          - name: PEERTUBE_URL
+            valueFrom:
+              secretKeyRef:
+                name: {{ $g.config.existingSecret | quote }}
+                key: runner-url
+          - name: REGISTRATION_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ $g.config.existingSecret | quote }}
+                key: registration-token
+          - name: ENABLE_JOBS
+            value: {{ join "," (default (list) $g.jobTypes) | quote }}
+          - name: UNREGISTER_ON_EXIT
+            value: {{ ternary "true" "false" $g.config.unregisterOnExit | quote }}
+          {{- with (concat $.Values.global.extraEnvVars $.Values.runner.initContainer.extraEnvVars) }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          volumeMounts:
+            - name: home
+              mountPath: /home/peertube
+            - name: runner-config
+              mountPath: /bootstrap
+              readOnly: true
+      containers:
+        - name: runner
+          image: {{ include "peertube.image" (dict
+            "image" $.Values.runner.container.image
+            "globalRegistry" $.Values.global.image.registry
+            "defaultTag" $.Chart.AppVersion
+          ) | quote }}
+          imagePullPolicy: {{ $.Values.runner.container.image.pullPolicy }}
+          env:
+          - name: HOME
+            value: /home/peertube
+          - name: XDG_CONFIG_HOME
+            value: /home/peertube/.config
+          - name: XDG_CACHE_HOME
+            value: /home/peertube/.cache
+          - name: XDG_DATA_HOME
+            value: /home/peertube/.local/share
+          - name: POD_NAME
+            valueFrom: 
+              fieldRef:
+                fieldPath: metadata.name
+          - name: RUNNER_GROUP_ID
+            value: {{ $g.id | quote }}
+          - name: PEERTUBE_URL
+            valueFrom:
+              secretKeyRef:
+                name: {{ $g.config.existingSecret | quote }}
+                key: runner-url
+          - name: REGISTRATION_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ $g.config.existingSecret | quote }}
+                key: registration-token
+          - name: ENABLE_JOBS
+            value: {{ join "," (default (list) $g.jobTypes) | quote }}
+          - name: UNREGISTER_ON_EXIT
+            value: {{ ternary "true" "false" $g.config.unregisterOnExit | quote }}
+          {{- with (concat $.Values.global.extraEnvVars $.Values.runner.container.extraEnvVars) }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with $.Values.runner.container.resources }}
+          resources:
+            {{- tpl (toYaml .) $ | nindent 12}}
+          {{- end }}
+          {{- with $.Values.runner.startupProbe }}
+          startupProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.runner.livenessProbe }}
+          livenessProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.runner.readinessProbe }}
+          readinessProbe:
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: home
+              mountPath: /home/peertube
+      volumes:
+        - name: runner-config
+          configMap:
+            name: {{ include "peertube.runner.configMapName" (dict "root" $ "group" $g) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: home
+        {{- with $.Values.runner.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes: [{{ $.Values.runner.persistence.accessMode | quote }}]
+        resources:
+          requests:
+            storage: {{ $.Values.runner.persistence.size | quote }}
+        {{- if $.Values.runner.persistence.storageClass }}
+        storageClassName: {{ $.Values.runner.persistence.storageClass | quote }}
+        {{- end }}
+---
+{{- end }}
+{{- end }}

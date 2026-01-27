@@ -1,0 +1,16 @@
+{{- if .Values.runner.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "peertube.runner.name" . }}-headless
+  namespace: {{ template "peertube.namespace" $ }}
+  labels:
+    {{- include "peertube.runner.labels" $ | nindent 4 }}
+  {{- with .Values.runner.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "peertube.runner.matchLabels" $ | nindent 4 }}
+{{- end }}

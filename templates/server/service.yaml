@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "peertube.server.name" . }}-svc
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.server.service }}
+  ports:
+    - name: server
+      port: {{ .port }}
+      protocol: TCP
+      targetPort: server
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if eq .type "NodePort" }}
+      {{- with .nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+  selector:
+    {{- include "peertube.server.matchLabels" $ | nindent 4 }}
+  type: {{ .type }}
+  {{- with .trafficDistribution }}
+  trafficDistribution: {{ . }}
+  {{- end }}
+  {{- end }}
+{{- if .Values.server.metricsService.create }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "peertube.server.name" . }}-metrics
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.metricsService.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.server.metricsService }}
+  ports:
+    - name: metrics
+      port: {{ .port }}
+      protocol: TCP
+      targetPort: metrics
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if eq .type "NodePort" }}
+      {{- with .nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+  selector:
+    {{- include "peertube.server.matchLabels" $ | nindent 4 }}
+  type: {{ .type }}
+  {{- with .trafficDistribution }}
+  trafficDistribution: {{ . }}
+  {{- end }}
+  {{- end }}
+{{- end -}}

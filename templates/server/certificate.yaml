@@ -1,0 +1,51 @@
+{{- if .Values.server.certificate.enabled -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "peertube.server.name" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.certificate.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  secretTemplate:
+    {{- with .Values.server.certificate.secretTemplateAnnotations }}
+    annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+  secretName: peertube-server-tls
+  {{- $host := "" -}}
+  {{- with .Values.server.ingress -}}
+  {{- if and .enabled .hosts -}}
+  {{- $host = tpl (first .hosts) $ -}}
+  {{- end -}}
+  {{- end -}}
+  commonName: {{ default $host .Values.server.certificate.domain | quote }}
+  dnsNames:
+  - {{ default $host .Values.server.certificate.domain | quote }}
+    {{- range .Values.server.certificate.additionalHosts }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- with .Values.server.certificate.duration }}
+  duration: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.server.certificate.renewBefore }}
+  renewBefore: {{ . | quote }}
+  {{- end }}
+  issuerRef:
+    {{- with .Values.server.certificate.issuer.group }}
+    group: {{ . | quote }}
+    {{- end }}
+    kind: {{ .Values.server.certificate.issuer.kind | quote }}
+    name: {{ .Values.server.certificate.issuer.name | quote }}
+  {{- with .Values.server.certificate.privateKey }}
+  privateKey:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.server.certificate.usages }}
+  usages:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

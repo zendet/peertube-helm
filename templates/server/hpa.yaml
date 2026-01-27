@@ -1,0 +1,26 @@
+{{- if .Values.server.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ template "peertube.server.name" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ template "peertube.server.name" . }}
+  minReplicas: {{ .Values.server.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.server.autoscaling.maxReplicas }}
+  {{- with .Values.server.autoscaling.metrics }}
+  metrics:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- else }}
+  {{- fail "server.autoscaling.metrics must be set when `autoscaling.enabled` is set to `true`" }}
+  {{- end }}
+  {{- with .Values.server.autoscaling.behavior }}
+  behavior:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+{{- end }}

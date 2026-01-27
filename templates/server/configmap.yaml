@@ -1,0 +1,15 @@
+{{- if .Values.server.config.createConfigMap -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "peertube.server.configMapName" . }}
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4}}
+  {{- with .Values.server.config.configMapAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- include "peertube.server.configData" . | nindent 2 }}
+{{- end }}

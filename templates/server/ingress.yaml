@@ -1,0 +1,85 @@
+{{- if .Values.server.ingress.enabled -}}
+{{- $path := .Values.server.ingress.path | default "/" -}}
+{{- $pathType := .Values.server.ingress.pathType | default "Prefix" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "peertube.server.name" . }}
+  namespace: {{ include "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.ingress.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.server.ingress.ingressClassName }}
+  ingressClassName: {{ tpl . $ }}
+  {{- end }}
+  {{- if or .Values.server.ingress.tls .Values.server.ingress.extraTls }}
+  tls:
+    {{- if .Values.server.ingress.tls }}
+    - hosts:
+      {{- range .Values.server.ingress.hosts }}
+      - {{ tpl . $ | quote }}
+      {{- end }}
+      {{- range .Values.server.ingress.extraHosts }}
+      {{- if .name }}
+      - {{ tpl .name $ | quote }}
+      {{- end }}
+      {{- end }}
+      secretName: peertube-server-tls
+    {{- end }}
+    {{- with .Values.server.ingress.extraTls }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  rules:
+  {{- if .Values.server.ingress.hosts }}
+  {{- range .Values.server.ingress.hosts }}
+    - host: {{ tpl . $ | quote }}
+      http:
+        paths:
+          {{- with $.Values.server.ingress.extraPaths }}
+            {{- tpl (toYaml .) $ | nindent 10 }}
+          {{- end }}
+          - path: {{ $path }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ template "peertube.server.name" $ }}-svc
+                port:
+                  number: {{ $.Values.server.service.port }}
+  {{- end }}
+  {{- else }}
+    - http:
+        paths:
+          {{- with .Values.server.ingress.extraPaths }}
+            {{- tpl (toYaml .) $ | nindent 10 }}
+          {{- end }}
+          - path: {{ $path }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ template "peertube.server.name" . }}-svc
+                port:
+                  number: {{ .Values.server.service.port }}
+  {{- end }}
+
+  {{- range .Values.server.ingress.extraHosts }}
+    - host: {{ tpl .name $ | quote }}
+      http:
+        paths:
+          - path: {{ default $path .path }}
+            pathType: {{ default $pathType .pathType }}
+            backend:
+              service:
+                name: {{ template "peertube.server.name" $ }}-svc
+                port:
+                  number: {{ $.Values.server.service.port }}
+  {{- end }}
+
+  {{- with .Values.server.ingress.extraRules }}
+    {{- tpl (toYaml .) $ | nindent 2 }}
+  {{- end }}
+{{- end }}
