@@ -639,7 +639,7 @@ runner:
 
   ## KEDA ScaledObject for runner queue-based scaling
   kedaDefaults:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 20
 
@@ -783,7 +783,7 @@ runner:
         - vod-audio-merge-transcoding
 
       keda:
-        enabled: true
+        enabled: false
         maxReplicas: 10
         redis:
           consumerGroup: "vod"
@@ -808,7 +808,7 @@ runner:
             nice: 20
           transcription:
             engine: whisper-ctranslate2
-            enginePath: /var/prunner/.local/pipx/venvs/whisper-ctranslate2/bin/whisper-ctranslate2
+            enginePath: /usr/local/bin/whisper-ctranslate2
             model: large-v2
 
         ## The name of an existing secret with runner token (must contain key `registration-token` and `runner-url`).
