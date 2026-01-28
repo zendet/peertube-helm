@@ -232,6 +232,8 @@ WHERE state IN (1, 5)
   AND "type" IN ('job-type1', 'job-type2');
 ```
 
+Replace the `'job-type1'` and `'job-type2'` with those configured in your `runnerGroups[].jobTypes`.
+
 **Advanced Configuration**
 
 You can override the default SQL query entirely:
@@ -244,5 +246,3 @@ runner:
 ```
 
 When `query` is set, the `jobTypes` filter is ignored.
-
-Replace the `'job-type1'` and `'job-type2'` with those configured in your `runnerGroups[].jobTypes`.
