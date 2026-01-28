@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  peertube:
+  - apiVersion: v2
+    appVersion: v8.0.2
+    created: "2026-01-28T02:48:36.449998312-03:00"
+    description: A Helm chart for Peertube
+    digest: f94a45107d5eb80d7bce30960aea75a80cb2c6dffcf7454451ad4148c40b5249
+    icon: https://github.com/Chocobozzz/PeerTube/raw/refs/heads/develop/client/src/assets/images/logo.svg
+    name: peertube
+    type: application
+    urls:
+    - https://zendet.github.io/peertube-helm/peertube-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-01-28T02:48:36.448231558-03:00"
