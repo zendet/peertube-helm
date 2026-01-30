@@ -133,6 +133,12 @@ spec:
             - name: metrics
               containerPort: {{ .Values.server.metricsPort }}
               protocol: TCP
+            - name: rtmp
+              containerPort: {{ .Values.server.rtmpPort }}
+              protocol: TCP
+            - name: rtmps
+              containerPort: {{ .Values.server.rtmpsPort }}
+              protocol: TCP
           env:
           - name: NODE_ENV
             value: production

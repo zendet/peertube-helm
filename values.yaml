@@ -160,6 +160,8 @@ server:
   
   containerPort: 9000
   metricsPort: 9091
+  rtmpPort: 1935
+  rtmpsPort: 1936
 
   config:
     createConfigMap: true
@@ -207,9 +209,18 @@ server:
           prometheus_exporter:
             hostname: "0.0.0.0"
             port: {{ .Values.server.metricsPort }}
-
       admin:
         email: 'admin@example.com'
+      live:
+        enabled: false
+        rtmp:
+          enabled: true
+          hostname: 0.0.0.0
+          port: 31935
+        rtmps:
+          enabled: false
+          hostname: 0.0.0.0
+          port: 31936
     #
     # transcoding:
     #   enabled: true
@@ -294,6 +305,21 @@ server:
     type: ClusterIP
     ## Only used if `type` is `NodePort`
     nodePort:
+    annotations: {}
+    appProtocol: ""
+    ## Service traffic distribution policy
+    ## Set to `PreferClose` to route traffic to nearby endpoints, reducing latency and cross-zone costs
+    trafficDistribution: ~
+
+  liveService:
+    create: false
+    portRtmp: 1935
+    portRtmps: 1936
+    type: NodePort
+    ## Only used if `type` is `NodePort`
+    nodePortRtmp: 31935
+    ## Only used if `type` is `NodePort`
+    nodePortRtmps: 31936
     annotations: {}
     appProtocol: ""
     ## Service traffic distribution policy
@@ -785,8 +811,6 @@ runner:
       keda:
         enabled: false
         maxReplicas: 10
-        redis:
-          consumerGroup: "vod"
       config:
         createConfigMap: true
         ## Required if `createConfigMap` is false.

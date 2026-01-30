@@ -246,3 +246,26 @@ runner:
 ```
 
 When `query` is set, the `jobTypes` filter is ignored.
+
+### Live streaming
+
+To enable live streaming in the server configuration, check [PeerTube documentation](https://docs.joinpeertube.org/admin/configuration#live-streaming)
+
+To expose ports for **RTMP** and **RTMPS**, you need to set `server.liveService.create` to `true`.
+
+PeerTube listen ports (`live.rtmp.port`, `live.rtmps.port`) are configured in `server.config.raw`; the live Service and NodePort/LB/Ingress expose them.
+
+To reach the live Service from the internet (e.g. for OBS), you need to expose it:
+ - Use a LoadBalancer (`server.liveService.type: LoadBalancer`) if your cluster provides one
+ - Use a NodePort (`server.liveService.type: NodePort` and optionally `server.liveService.nodePortRtmp` / `server.liveService.nodePortRtmps`)
+ - Use an Ingress TCP passthrough so that port 1935 (and 1936 for RTMPS) is forwarded to the live Service
+
+### Getting Help
+
+You can get help at:
+
+* Chat<a name="contact"></a>:
+  * Matrix (bridged on IRC and [Discord](https://discord.gg/wj8DDUT)) : **[#peertube:matrix.org](https://matrix.to/#/#peertube:matrix.org)**
+  * IRC : **[#peertube on irc.libera.chat:6697](https://web.libera.chat/#peertube)**
+* Forum:
+  * Framacolibri: [https://framacolibri.org/c/peertube](https://framacolibri.org/c/peertube)

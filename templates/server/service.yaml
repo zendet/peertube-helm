@@ -64,4 +64,51 @@ spec:
   trafficDistribution: {{ . }}
   {{- end }}
   {{- end }}
+{{- end }}
+{{- if .Values.server.liveService.create }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "peertube.server.name" . }}-live
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.liveService.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.server.liveService }}
+  ports:
+    - name: rtmp
+      port: {{ .portRtmp }}
+      protocol: TCP
+      targetPort: rtmp
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if eq .type "NodePort" }}
+      {{- with .nodePortRtmp }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+    - name: rtmps
+      port: {{ .portRtmps }}
+      protocol: TCP
+      targetPort: rtmps
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if eq .type "NodePort" }}
+      {{- with .nodePortRtmps }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+  selector:
+    {{- include "peertube.server.matchLabels" $ | nindent 4 }}
+  type: {{ .type }}
+  {{- with .trafficDistribution }}
+  trafficDistribution: {{ . }}
+  {{- end }}
+  {{- end }}
 {{- end -}}
