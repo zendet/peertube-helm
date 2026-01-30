@@ -3,7 +3,18 @@ entries:
   peertube:
   - apiVersion: v2
     appVersion: v8.0.2
-    created: "2026-01-28T08:20:36.20000057-03:00"
+    created: "2026-01-30T01:02:49.6679739-03:00"
+    description: A Helm chart for Peertube
+    digest: 2ff7c0257985ec31b8458a4d8ea7cd695ea0be577542fab7319e71c4df62ecf9
+    icon: https://github.com/Chocobozzz/PeerTube/raw/refs/heads/develop/client/src/assets/images/logo.svg
+    name: peertube
+    type: application
+    urls:
+    - https://zendet.github.io/peertube-helm/peertube-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: v8.0.2
+    created: "2026-01-30T01:02:49.664889313-03:00"
     description: A Helm chart for Peertube
     digest: ac6827248576e53e711fd3cd469624e725c7d1173bc9cf90cf1979bd2f394b19
     icon: https://github.com/Chocobozzz/PeerTube/raw/refs/heads/develop/client/src/assets/images/logo.svg
@@ -14,7 +25,7 @@ entries:
     version: 0.1.1
   - apiVersion: v2
     appVersion: v8.0.2
-    created: "2026-01-28T08:20:36.198050956-03:00"
+    created: "2026-01-30T01:02:49.663431553-03:00"
     description: A Helm chart for Peertube
     digest: f94a45107d5eb80d7bce30960aea75a80cb2c6dffcf7454451ad4148c40b5249
     icon: https://github.com/Chocobozzz/PeerTube/raw/refs/heads/develop/client/src/assets/images/logo.svg
@@ -23,4 +34,4 @@ entries:
     urls:
     - https://zendet.github.io/peertube-helm/peertube-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-28T08:20:36.196348384-03:00"
+generated: "2026-01-30T01:02:49.66222219-03:00"
