@@ -1,0 +1,50 @@
+{{- if .Values.server.tcpRoute.enabled -}}
+{{- $tcp := .Values.server.tcpRoute -}}
+{{- if $tcp.rtmp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: {{ include "peertube.server.name" . }}-live-rtmp
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with $tcp.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $tcp.rtmp.parentRefs }}
+  parentRefs:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+  rules:
+    - backendRefs:
+        - name: {{ template "peertube.server.name" . }}-live
+          port: {{ .Values.server.liveService.portRtmp }}
+{{- end }}
+{{- if and $tcp.rtmp.enabled $tcp.rtmps.enabled }}
+---
+{{- end }}
+{{- if $tcp.rtmps.enabled }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: {{ include "peertube.server.name" . }}-live-rtmps
+  namespace: {{ template "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with $tcp.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $tcp.rtmps.parentRefs }}
+  parentRefs:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+  rules:
+    - backendRefs:
+        - name: {{ template "peertube.server.name" . }}-live
+          port: {{ .Values.server.liveService.portRtmps }}
+{{- end }}
+{{- end }}

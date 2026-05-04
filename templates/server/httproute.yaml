@@ -1,0 +1,37 @@
+{{- if .Values.server.httpRoute.enabled -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "peertube.server.name" . }}
+  namespace: {{ include "peertube.namespace" . }}
+  labels:
+    {{- include "peertube.server.labels" . | nindent 4 }}
+  {{- with .Values.server.httpRoute.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.server.httpRoute.parentRefs }}
+  parentRefs:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+  {{- if .Values.server.httpRoute.hostnames }}
+  hostnames:
+    {{- range .Values.server.httpRoute.hostnames }}
+    - {{ tpl . $ | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - matches:
+        {{- toYaml .Values.server.httpRoute.matches | nindent 8 }}
+      {{- with .Values.server.httpRoute.filters }}
+      filters:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ include "peertube.server.name" . }}-svc
+          port: {{ .Values.server.service.port }}
+    {{- with .Values.server.httpRoute.extraRules }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+{{- end }}

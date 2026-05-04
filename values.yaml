@@ -449,6 +449,49 @@ server:
     ## Additional TLS configuration
     extraTls: []
 
+  ## Enables Gateway API HTTPRoute
+  httpRoute:
+    enabled: false
+    annotations: {}
+
+    parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+
+    hostnames: []
+    # - peertube.domain.com
+
+    matches:
+      - path:
+          type: PathPrefix
+          value: /
+
+    ## Can be templated
+    filters: []
+
+    ## Can be templated
+    extraRules: []
+
+  ## Enables Gateway API TCPRoute for the live (RTMP/RTMPS) service
+  tcpRoute:
+    enabled: false
+    annotations: {}
+
+    rtmp:
+      enabled: true
+      parentRefs: []
+      # - name: my-tcp-gateway
+      #   namespace: gateway-system
+      #   sectionName: rtmp
+
+    rtmps:
+      enabled: true
+      parentRefs: []
+      # - name: my-tcp-gateway
+      #   namespace: gateway-system
+      #   sectionName: rtmps
+
   certificate:
     enabled: false
     ## Certificate primary domain (commonName)
