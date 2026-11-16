@@ -1,0 +1,85 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      PAGES_URL: https://zendet.github.io/peertube-helm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Verify tag matches Chart.yaml version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          chart_version=$(awk '/^version:/ {print $2}' Chart.yaml)
+          if [ "${tag}" != "${chart_version}" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match Chart.yaml version '${chart_version}'"
+            exit 1
+          fi
+
+      - name: Package chart
+        run: |
+          mkdir -p .release
+          helm package . --destination .release
+
+      - name: Build changelog
+        run: |
+          prev_tag=$(git describe --tags --abbrev=0 --match='v*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          {
+            if [ -n "${prev_tag}" ]; then
+              echo "## Changes since ${prev_tag}"
+              echo
+              git log "${prev_tag}..${GITHUB_REF_NAME}" --no-merges --pretty=format:'- %s'
+              echo
+            else
+              echo "Initial release ${GITHUB_REF_NAME}."
+            fi
+          } > /tmp/release-body.md
+
+      - name: Publish chart to gh-pages
+        run: |
+          git config user.name "zendet"
+          git config user.email "hozztie@gmail.com"
+          pkg=$(ls .release/*.tgz)
+          base=$(basename "${pkg}")
+          git fetch origin gh-pages
+          git worktree add _ghpages gh-pages
+          if [ -f "_ghpages/${base}" ]; then
+            echo "${base} already published to gh-pages, skipping"
+          else
+            cp "${pkg}" _ghpages/
+            cd _ghpages
+            if [ -f index.yaml ]; then
+              helm repo index . --url "${PAGES_URL}" --merge index.yaml
+            else
+              helm repo index . --url "${PAGES_URL}"
+            fi
+            git add .
+            git commit -s -m "publish ${base}"
+            git push origin gh-pages
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pkg=$(ls .release/*.tgz)
+          gh release create "${GITHUB_REF_NAME}" "${pkg}" \
+            --title "Helm chart ${GITHUB_REF_NAME}" \
+            --notes-file /tmp/release-body.md
