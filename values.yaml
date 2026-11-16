@@ -187,7 +187,19 @@ server:
     ## - redis:       externalRedis / (internal redis if enabled)
     ## - secrets:     config.admin + config.secrets / existingSecret
     ## - object_storage: objectStorage.*
-    ## Can be templated
+    ##
+    ## Two ways to define the config:
+    ## - `data`: structured YAML keys (preferred; renders deterministically)
+    ## - `raw`: string block (legacy)
+    ## If `data` is set it takes precedence over `raw`
+    ## Values can be templated in both forms
+    data: {}
+    #   listen:
+    #     port: 9000
+    #   webserver:
+    #     https: false
+    #   admin:
+    #     email: admin@example.com
     raw: |
       listen:
         hostname: 

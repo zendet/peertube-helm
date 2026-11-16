@@ -44,8 +44,13 @@
 Generate configmap data
 */}}
 {{- define "peertube.server.configData" -}}
-{{- $config := (fromYaml (tpl (default "" .Values.server.config.raw) .)) | default (dict) -}}
-
+{{- $rawConfig := (fromYaml (tpl (default "" .Values.server.config.raw) .)) | default (dict) -}}
+{{- $dataConfig := default (dict) .Values.server.config.data -}}
+{{- /* structured `data` takes precedence over the `raw` string */ -}}
+{{- $config := $rawConfig -}}
+{{- if $dataConfig -}}
+{{- $config = $dataConfig -}}
+{{- end -}}
 
 {{- $base := omit $config "database" "redis" "object_storage" "secrets" -}}
 
