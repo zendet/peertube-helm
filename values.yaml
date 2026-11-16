@@ -270,9 +270,15 @@ server:
     name: ""
     username: ""
     password: ""
-    ## The name of an existing secret with Postgres (must contain key `postgres-password` and `postgres-username` if username is not `default`) and Sentinel credentials
+    ## The name of an existing secret with Postgres (must contain the keys set in `usernameKey` and `passwordKey` below)
     ## If set, the `externalPostgres.username` and `externalPostgres.password` parameters are ignored
     existingSecret: ""
+    ## Key in the existing secret holding the Postgres username
+    ## Defaults to `postgres-username`
+    usernameKey: ""
+    ## Key in the existing secret holding the Postgres password
+    ## Defaults to `postgres-password`
+    passwordKey: ""
     pool:
       max: 5
 
@@ -281,9 +287,12 @@ server:
     port: 6379
     db:
     password: ""
-    ## The name of an existing secret with Redis (must contain key `redis-password`) and Sentinel credentials
+    ## The name of an existing secret with Redis (must contain the key set in `passwordKey` below) and Sentinel credentials
     ## If set, the `externalRedis.username` parameter is ignored
     existingSecret: ""
+    ## Key in the existing secret holding the Redis password
+    ## Defaults to `redis-password`
+    passwordKey: ""
     sentinel:
       enabled:
 

@@ -115,7 +115,7 @@ optional: {{ ternary false true (or
 
 {{- define "peertube.server.redis.passwordSecretRef" -}}
 name: {{ default (printf "%s-redis" (include "peertube.server.name" .)) .Values.server.externalRedis.existingSecret | quote }}
-key: redis-password
+key: {{ default "redis-password" .Values.server.externalRedis.passwordKey }}
 optional: {{ ternary false true (or
   (not (empty .Values.server.externalRedis.existingSecret))
   (not (empty .Values.server.externalRedis.password))
@@ -124,13 +124,13 @@ optional: {{ ternary false true (or
 
 {{- define "peertube.server.postgres.usernameSecretRef" -}}
 name: {{ default (printf "%s-postgres" (include "peertube.server.name" .)) .Values.server.externalPostgres.existingSecret | quote }}
-key: postgres-username
+key: {{ default "postgres-username" .Values.server.externalPostgres.usernameKey }}
 optional: false
 {{- end -}}
 
 {{- define "peertube.server.postgres.passwordSecretRef" -}}
 name: {{ default (printf "%s-postgres" (include "peertube.server.name" .)) .Values.server.externalPostgres.existingSecret | quote }}
-key: postgres-password
+key: {{ default "postgres-password" .Values.server.externalPostgres.passwordKey }}
 optional: {{ ternary false true (or
   (not (empty .Values.server.externalPostgres.existingSecret))
   (not (empty .Values.server.externalPostgres.password))
