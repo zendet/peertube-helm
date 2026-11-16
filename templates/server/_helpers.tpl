@@ -64,7 +64,7 @@ production.yaml: |
     port: {{ .Values.server.externalPostgres.port }}
     ssl: {{ .Values.server.externalPostgres.ssl | default false }}
     suffix: {{ .Values.server.externalPostgres.suffix | default "" | quote }}
-    name: {{ .Values.server.externalPostgres.db | default "peertube" | quote }}
+    name: {{ .Values.server.externalPostgres.name | default "peertube" | quote }}
     username: $(PEERTUBE_DB_USERNAME)
     pool:
       max: {{ .Values.server.externalPostgres.pool.max | default 5 }}
