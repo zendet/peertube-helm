@@ -22,3 +22,7 @@
 *.tmproj
 .vscode/
 ci/
+# CI workflow definitions
+.forgejo/
+.github/
+Makefile
