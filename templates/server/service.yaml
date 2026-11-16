@@ -29,6 +29,13 @@ spec:
   {{- with .trafficDistribution }}
   trafficDistribution: {{ . }}
   {{- end }}
+  {{- with .sessionAffinity }}
+  sessionAffinity: {{ . }}
+  {{- end }}
+  {{- with .sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml . | nindent 6 }}
+  {{- end }}
   {{- end }}
 {{- if .Values.server.metricsService.create }}
 ---

@@ -319,6 +319,15 @@ server:
     ## Service traffic distribution policy
     ## Set to `PreferClose` to route traffic to nearby endpoints, reducing latency and cross-zone costs
     trafficDistribution: ~
+    ## Session affinity for the server service, useful with multiple replicas
+    ## so that the same client stays on the same instance
+    ## See: https://kubernetes.io/docs/reference/networking/virtual-ips/#session-affinity
+    sessionAffinity: ~
+    ## Session affinity configuration
+    ## See: https://kubernetes.io/docs/reference/networking/virtual-ips/#session-affinity
+    sessionAffinityConfig: {}
+    # clientIP:
+    #   timeoutSeconds: 10800
 
   metricsService:
     create: false
